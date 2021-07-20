@@ -32,4 +32,7 @@ public interface MyService {
 	int deleteCVO(String c_idx) throws Exception;
 	// 비밀번호 체크
 	int selectPwdChk(BVO bvo) throws Exception;
+	
+	// 업데이트전에 정보 가져오기 
+	BVO selectBVOOneList(String b_idx) throws Exception ;
 }

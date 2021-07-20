@@ -1,11 +1,16 @@
 package com.ict.controller;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -129,10 +134,6 @@ public class MyController {
 		}
 	}
 
-	/*
-	 * @RequestMapping("download.do") public
-	 */
-
 	@RequestMapping(value = "clist.do", produces = "application/json; charset=utf-8")
 	@ResponseBody
 	public List<CVO> cList(@RequestParam("b_idx") String b_idx) {
@@ -199,6 +200,78 @@ public class MyController {
 		return null;
 		
 	}
-	 
+	
+	@RequestMapping("update.do")
+	public ModelAndView updateCommand(@ModelAttribute("cPage")String cPage,
+			@ModelAttribute("b_idx")String b_idx) {
+		try {
+			ModelAndView mv = new ModelAndView("update");
+			BVO bvo = myService.selectBVOOneList(b_idx);
+			mv.addObject("bvo", bvo);
+			return mv;
+		} catch (Exception e) {
+		}
+		return null;
+	}
+	@RequestMapping(value = "update_ok.do", method = RequestMethod.POST)
+	public ModelAndView updateokCommand(BVO bvo, @RequestParam("cPage")String cPage,
+			HttpServletRequest request) {
+		try {
+			String path = request.getSession().getServletContext().getRealPath("/resources/upload");
+			MultipartFile file = bvo.getF_name();
+			String old_file_name = request.getParameter("old_file_name");
+			if(old_file_name == null) { // 이전 파일이 없을 때 
+				if(file.isEmpty()) {    // 현재 파일이 없을 때 
+					bvo.setFile_name("");
+				}else {
+					bvo.setFile_name(file.getOriginalFilename());
+				}
+			}else {                   // 이전 파일이 있을 때 
+				if(file.isEmpty()) {  // 현재 파일이 없을 때  
+					bvo.setFile_name(old_file_name);
+				}else {
+					bvo.setFile_name(file.getOriginalFilename());
+				}
+			}
+			int result = myService.updateBVO(bvo);
+			if(! file.isEmpty()) {
+				byte[] in = file.getBytes();
+				File out = new File(path, bvo.getFile_name());
+				FileCopyUtils.copy(in, out);
+			}
+			return new ModelAndView("redirect:onelist.do?b_idx="+bvo.getB_idx()+"&cPage="+cPage);
+		} catch (Exception e) {
+			System.out.println(e);
+		}
+		return null;
+	}
+	@RequestMapping("download.do")
+	public void downCommand(@RequestParam("file_name")String file_name,
+			HttpServletRequest request, HttpServletResponse response) {
+		FileInputStream fis = null;
+		BufferedInputStream bis = null;
+		BufferedOutputStream bos = null;
+		try {
+			String path = request.getSession().getServletContext()
+					.getRealPath("/resources/upload/"+file_name);
+			response.setContentType("application/x-msdownload");
+			response.setHeader("Content-Disposition",
+					"attachment; filename="+URLEncoder.encode(file_name,"utf-8"));
+			File file = new File(new String(path.getBytes("utf-8")));
+			fis = new FileInputStream(file);
+			bis = new BufferedInputStream(fis);
+			bos = new BufferedOutputStream(response.getOutputStream());
+			
+			FileCopyUtils.copy(bis, bos);
+		} catch (Exception e) {
+		} finally {
+			try {
+				bos.close();
+				bis.close();
+				fis.close();
+			} catch (Exception e2) {
+			}
+		}
+	}
 	
 }

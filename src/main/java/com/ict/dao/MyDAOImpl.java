@@ -82,9 +82,9 @@ public class MyDAOImpl implements MyDAO{
 	
 	@Override
 	public int updateBVO(BVO bvo) throws Exception {
-		// TODO Auto-generated method stub
-		return 0;
+		return sqlSessionTemplate.update("update",bvo);
 	}
+
 
 
 	
